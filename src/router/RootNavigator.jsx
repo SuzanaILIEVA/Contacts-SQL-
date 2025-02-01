@@ -1,14 +1,28 @@
-import {StyleSheet, Text, View} from 'react-native';
+import {Alert, Pressable, StyleSheet, Text, View} from 'react-native';
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {CALLS, CONTACTDETAILS, TABNAVIGATOR} from '../utils/routes';
+import {
+  ADDNEWCONTACT,
+  CALLS,
+  CONTACTDETAILS,
+  FAVORITES,
+  TABNAVIGATOR,
+  UPDATECONTACT,
+} from '../utils/routes';
 import TabNavigator from './TabNavigator';
 import ContactDetail from '../screens/contacts/ContactDetail';
 import {colors} from '../theme/colors';
 import Calls from '../screens/calls';
+import AddContact from '../screens/contacts/AddContact';
+import Ionicons from '@react-native-vector-icons/ionicons';
+import {useDispatch} from 'react-redux';
+import {deleteContact} from '../store/actions/contactAction';
+import UpdateContact from '../screens/contacts/UpdateContact';
+import Favorites from '../screens/favorites';
 
 const Stack = createNativeStackNavigator();
 const RootNavigator = () => {
+  const dispatch = useDispatch();
   return (
     <Stack.Navigator
       screenOptions={{
@@ -22,7 +36,48 @@ const RootNavigator = () => {
           headerShown: false,
         }}
       />
-      <Stack.Screen name={CONTACTDETAILS} component={ContactDetail} />
+      <Stack.Screen
+        name={CONTACTDETAILS}
+        component={ContactDetail}
+        options={({navigation, route}) => ({
+          headerRight: ({focused, size, color}) => (
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                marginHorizontal: 10,
+                paddingRight: 5,
+                gap: 10,
+              }}>
+              <Pressable
+                onPress={() =>
+                  navigation.navigate(TABNAVIGATOR, {
+                    screen: FAVORITES,
+                    params: {contact: route.params.contact},
+                  })
+                }>
+                <Ionicons name="star" size={30} color={colors.GREEN} />
+              </Pressable>
+              <Pressable
+                onPress={() =>
+                  navigation.navigate(UPDATECONTACT, {
+                    contact: route.params.contact,
+                  })
+                }>
+                <Ionicons name="create" size={30} color={colors.BLUE} />
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  dispatch(deleteContact(route.params.contact.id));
+                  Alert.alert('Contact deleted');
+                  navigation.goBack();
+                }}>
+                <Ionicons name="trash" size={30} color={colors.RED} />
+              </Pressable>
+            </View>
+          ),
+        })}
+      />
       <Stack.Screen
         name={CALLS}
         component={Calls}
@@ -30,6 +85,8 @@ const RootNavigator = () => {
           headerShown: false,
         }}
       />
+      <Stack.Screen name={ADDNEWCONTACT} component={AddContact} />
+      <Stack.Screen name={UPDATECONTACT} component={UpdateContact} />
     </Stack.Navigator>
   );
 };

@@ -1,5 +1,5 @@
 import {ScrollView, StyleSheet, Text, View} from 'react-native';
-import React from 'react';
+import React, {useEffect} from 'react';
 import SQLite from 'react-native-sqlite-storage';
 import defaultScreenStyle from '../../styles/defaultScreenStyle';
 import Avatar from '../../components/contacts/Avatar';
@@ -9,6 +9,8 @@ import {colors} from '../../theme/colors';
 import CircleIconButton from '../../components/ui/CircleIconButton';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import {CALLS} from '../../utils/routes';
+import {useDispatch} from 'react-redux';
+import {setContact, setPending} from '../../store/slice/contactSlice';
 
 // Uygulama içindeki kişi (contact) bilgilerini saklamak için
 // 'ContactsDatabase' adlı SQLite veritabanını açar veya yoksa oluşturur.
@@ -17,6 +19,7 @@ const db = SQLite.openDatabase({
 });
 
 const ContactDetail = ({route, navigation}) => {
+  const dispatch = useDispatch();
   const {contact} = route.params;
   // console.log('width:', width, 'height:', height);
 
@@ -38,6 +41,36 @@ const ContactDetail = ({route, navigation}) => {
     addNewCall(date, contact?.id, 'incoming');
     navigation.navigate(CALLS, {contact: contact});
   };
+
+  const getContacts = () => {
+    dispatch(setPending(true));
+    db.transaction(txn => {
+      txn.executeSql(
+        'SELECT * FROM users',
+        [],
+        (sqlTxn, res) => {
+          console.log('Gelen Veri ', res.rows.length);
+          if (res.rows.length > 0) {
+            let fetchedUsers = [];
+            for (let i = 0; i < res.rows.length; i++) {
+              fetchedUsers.push(res.rows.item(i));
+            }
+            dispatch(setContact(fetchedUsers));
+          }
+          dispatch(setPending(false));
+        },
+        error => {
+          console.log('Hata', error.message);
+          dispatch(setPending(false));
+        },
+      );
+    });
+  };
+  useEffect(() => {
+    return () => {
+      getContacts();
+    };
+  }, []);
   return (
     <View style={defaultScreenStyle.container}>
       <ScrollView>

@@ -1,10 +1,20 @@
-import {FlatList, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import React, {useEffect, useState} from 'react';
 import defaultScreenStyle from '../../styles/defaultScreenStyle';
 import SQLite from 'react-native-sqlite-storage';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import {colors} from '../../theme/colors';
 import ContactItem from '../../components/contacts/ContactItem';
+import {useDispatch, useSelector} from 'react-redux';
+import {setContact, setPending} from '../../store/slice/contactSlice';
+import {height} from '../../utils/constant';
 
 // Uygulama içindeki kişi (contact) bilgilerini saklamak için
 // 'ContactsDatabase' adlı SQLite veritabanını açar veya yoksa oluşturur.
@@ -13,13 +23,14 @@ const db = SQLite.openDatabase({
 });
 
 const Contacts = () => {
-  const [users, setUsers] = useState([]);
+  const {contacts, pending} = useSelector(state => state.contactStore);
+  const dispatch = useDispatch();
 
   /**
    * not:
    * VARCHAR(n) ve TEXT Kullanımı:
 
-SQLite'da VARCHAR(100) veya VARCHAR(500) gibi uzunluk belirtmek gereksizdir çünkü VARCHAR(n), TEXT gibi davranır. SQLite, VARCHAR için maksimum uzunluğu dikkate almaz.
+SQLite'da VARCHAR(100) veya VARCHAR(500) gibi uzunluk belirtmek => VARCHAR(n), TEXT gibi davranır. SQLite, VARCHAR için maksimum uzunluğu dikkate almaz.
 Alternatif olarak TEXT kullanabilirsiniz:
 `CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT, 
@@ -31,7 +42,7 @@ Alternatif olarak TEXT kullanabilirsiniz:
       job TEXT
     )` 
     not 2:
-    tabloyu oluştururken sütuna büyük/küçük harf duyarsızlık ekleyebilirsiniz:
+    tabloyu oluştururken sütuna COLLATE NOCASE ile büyük/küçük harf duyarsızlık ekleyebilirsiniz:
     CREATE TABLE users (
   id INTEGER PRIMARY KEY AUTOINCREMENT, 
   name TEXT COLLATE NOCASE
@@ -62,8 +73,9 @@ Alternatif olarak TEXT kullanabilirsiniz:
     });
   };
 
-  // Kullanıcıların veritabanından  getirilmesi için bir fonksiyon
+  // Kullanıcıların veritabanından  getirilmesi için fonksiyon
   const getContacts = () => {
+    dispatch(setPending(true));
     db.transaction(txn => {
       txn.executeSql(
         'SELECT * FROM users',
@@ -75,23 +87,15 @@ Alternatif olarak TEXT kullanabilirsiniz:
             for (let i = 0; i < res.rows.length; i++) {
               fetchedUsers.push(res.rows.item(i));
             }
-            setUsers(fetchedUsers); // Doğrudan yeni liste olarak ayarla.
+            dispatch(setContact(fetchedUsers));
           }
-
+          dispatch(setPending(false));
           // console.log('Kullanıcılar getirildi', res.rows);
         },
-        error => console.log('Hata', error.message),
-      );
-    });
-  };
-  // Kullanıcıların veritabanına eklenmesi için bir fonksiyon
-  const addNewContact = (name, surname, phone, email, address, job) => {
-    db.transaction(txn => {
-      txn.executeSql(
-        'INSERT INTO users (name,surname,phone,email,address,job) VALUES (?,?,?,?,?,?)',
-        [name, surname, phone, email, address, job],
-        (sqlTxn, res) => console.log('Kisi Eklendi '),
-        error => console.log('Hata', error.message),
+        error => {
+          console.log('Hata', error.message);
+          dispatch(setPending(false));
+        },
       );
     });
   };
@@ -104,24 +108,36 @@ Alternatif olarak TEXT kullanabilirsiniz:
 
   return (
     <View style={defaultScreenStyle.container}>
-      <FlatList
-        data={users}
-        renderItem={({item}) => <ContactItem item={item} />}
-      />
-      <TouchableOpacity
+      {pending ? (
+        <ActivityIndicator
+          color={colors.BLACK}
+          size={'large'}
+          style={{marginTop: height * 0.2}}
+        />
+      ) : (
+        <FlatList
+          ListEmptyComponent={
+            <Text style={styles.not}>No people added yet!</Text>
+          }
+          data={contacts}
+          renderItem={({item}) => <ContactItem item={item} />}
+        />
+      )}
+
+      {/* <TouchableOpacity
         style={styles.button}
         onPress={() =>
           addNewContact(
-            'Mehmet',
-            'Kara',
-            '0316852664',
-            'mehmet@gmail.com',
-            'Izmir',
-            'Yazilim',
+            'Berk',
+            'Altin',
+            '0556852664',
+            'berk@gmail.com',
+            'Den Haag',
+            'Mobil Developer',
           )
         }>
         <Ionicons name="add" size={30} color={colors.BLACK} />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 };
@@ -137,5 +153,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     right: 20,
+  },
+  not: {
+    marginTop: 40,
+    textAlign: 'center',
+    color: colors.BLACK,
+    fontSize: 20,
+    flexWeight: 'bold',
   },
 });
