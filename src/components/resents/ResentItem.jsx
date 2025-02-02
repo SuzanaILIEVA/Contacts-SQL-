@@ -48,25 +48,21 @@ const ResentItem = ({item}) => {
         <Text style={styles.job}>{item.date}</Text>
       </View>
       <View style={styles.callTypeContainer}>
-        {
-          item?.callType === 'incoming' ? (
-            <Feather
-              name="phone-incoming"
-              color={colors.GREEN}
-              size={25}
-              iconStyle="solid"
-            />
-          ) : (
-            <Feather
-              name="phone-outgoing"
-              color={colors.BLUE}
-              size={25}
-              iconStyle="solid"
-            />
-          )
-
-          // Missed call ise kırmızı, diğer durumda açık olacaktır.
-        }
+        {item?.callType === 'incoming' ? (
+          <Feather
+            name="phone-incoming"
+            color={colors.GREEN}
+            size={25}
+            iconStyle="solid"
+          />
+        ) : (
+          <Feather
+            name="phone-outgoing"
+            color={colors.BLUE}
+            size={25}
+            iconStyle="solid"
+          />
+        )}
       </View>
     </Pressable>
   );

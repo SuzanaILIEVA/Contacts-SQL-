@@ -4,6 +4,7 @@ import {deleteContact} from '../actions/contactAction';
 const initialState = {
   contacts: [],
   resents: [],
+  favorites: [],
   pending: false,
 };
 const contactSlice = createSlice({
@@ -21,8 +22,19 @@ const contactSlice = createSlice({
       state.resents = action.payload;
       state.pending = false;
     },
-    setPending: (state, action) => {
-      state.pending = action.payload;
+
+    setFavorites: (state, action) => {
+      state.favorites = action.payload;
+    },
+    addFavorite: (state, action) => {
+      if (!state.favorites.some(fav => fav.id === action.payload.id)) {
+        state.favorites.push(action.payload);
+      }
+    },
+    removeFavorite: (state, action) => {
+      state.favorites = state.favorites.filter(
+        fav => fav.id !== action.payload,
+      );
     },
   },
   extraReducers: builder => {
@@ -33,6 +45,13 @@ const contactSlice = createSlice({
   },
 });
 
-export const {setContact, setPending, setResent} = contactSlice.actions;
+export const {
+  setContact,
+  setPending,
+  setResent,
+  setFavorites,
+  addFavorite,
+  removeFavorite,
+} = contactSlice.actions;
 
 export default contactSlice.reducer;

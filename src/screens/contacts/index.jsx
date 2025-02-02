@@ -3,13 +3,12 @@ import {
   FlatList,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect} from 'react';
 import defaultScreenStyle from '../../styles/defaultScreenStyle';
 import SQLite from 'react-native-sqlite-storage';
-import Ionicons from '@react-native-vector-icons/ionicons';
+
 import {colors} from '../../theme/colors';
 import ContactItem from '../../components/contacts/ContactItem';
 import {useDispatch, useSelector} from 'react-redux';
@@ -73,6 +72,21 @@ Alternatif olarak TEXT kullanabilirsiniz:
     });
   };
 
+  const createFavoriteTables = () => {
+    db.transaction(txn => {
+      txn.executeSql(
+        `CREATE TABLE IF NOT EXISTS favorites (
+         id INTEGER PRIMARY KEY AUTOINCREMENT,
+         contact_id INTEGER NOT NULL,
+         FOREIGN KEY (contact_id) REFERENCES users(id) ON DELETE CASCADE
+      );`,
+        [],
+        () => console.log('Favorites tablosu oluşturuldu'),
+        error => console.log('Hata (favorites tablo):', error.message),
+      );
+    });
+  };
+
   // Kullanıcıların veritabanından  getirilmesi için fonksiyon
   const getContacts = () => {
     dispatch(setPending(true));
@@ -103,6 +117,7 @@ Alternatif olarak TEXT kullanabilirsiniz:
   useEffect(() => {
     createContactsTable();
     createResentsTable();
+    createFavoriteTables();
     getContacts();
   }, []);
 
@@ -123,21 +138,6 @@ Alternatif olarak TEXT kullanabilirsiniz:
           renderItem={({item}) => <ContactItem item={item} />}
         />
       )}
-
-      {/* <TouchableOpacity
-        style={styles.button}
-        onPress={() =>
-          addNewContact(
-            'Berk',
-            'Altin',
-            '0556852664',
-            'berk@gmail.com',
-            'Den Haag',
-            'Mobil Developer',
-          )
-        }>
-        <Ionicons name="add" size={30} color={colors.BLACK} />
-      </TouchableOpacity> */}
     </View>
   );
 };

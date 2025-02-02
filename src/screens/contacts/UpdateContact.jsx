@@ -16,7 +16,7 @@ const UpdateContact = ({route}) => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
 
-  // Kullanıcıların veritabanında guncellenmesi için bir fonksiyon
+  // Kullanıcıların veritabanında guncellenmesi için fonksiyon
   const updateContact = values => {
     db.transaction(txn => {
       txn.executeSql(
@@ -83,6 +83,7 @@ const UpdateContact = ({route}) => {
           validationSchema={newContactSchema}
           onSubmit={values => {
             updateContact(values);
+            getContacts(); // Redux store’u güncelle
             Alert.alert('Contact Updated');
             navigation.goBack();
           }}>

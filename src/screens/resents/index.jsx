@@ -1,10 +1,14 @@
-import {FlatList, StyleSheet, View} from 'react-native';
-import React, {useEffect} from 'react';
+import {ActivityIndicator, FlatList, StyleSheet, View} from 'react-native';
+import React, {useCallback} from 'react';
 import defaultScreenStyle from '../../styles/defaultScreenStyle';
 import SQLite from 'react-native-sqlite-storage';
 import ResentItem from '../../components/resents/ResentItem';
 import {useDispatch, useSelector} from 'react-redux';
 import {setPending, setResent} from '../../store/slice/contactSlice';
+import {colors} from '../../theme/colors';
+import {height} from '../../utils/constant';
+import {cleanDeletedCalls} from '../../store/actions/contactAction';
+import {useFocusEffect} from '@react-navigation/native';
 
 const db = SQLite.openDatabase({
   name: 'ContactsDatabase',
@@ -13,45 +17,52 @@ const Resents = () => {
   const dispatch = useDispatch();
   // const [resents, setResents] = useState([]);
   const {resents, pending} = useSelector(state => state.contactStore);
+
   // Aramalarin veritabanından  getirilmesi için  fonksiyon
-  console.log(resents);
+  console.log('RESENTS=>', resents);
 
   const getResents = () => {
     dispatch(setPending(true));
     db.transaction(txn => {
       txn.executeSql(
-        'SELECT * FROM calls',
+        `SELECT calls.*, users.name, users.surname FROM calls 
+       LEFT JOIN users ON calls.resent_id = users.id 
+       WHERE users.id IS NOT NULL`, // Sadece mevcut kullanıcılar
         [],
         (sqlTxn, res) => {
-          console.log('resent Gelen Veri ', res.rows.length);
-          if (res.rows.length > 0) {
-            let fetchedResent = [];
-            for (let i = 0; i < res.rows.length; i++) {
-              fetchedResent.push(res.rows.item(i));
-            }
-            // setResents(fetchedResent); // Doğrudan yeni liste olarak ayarl
-            dispatch(setResent(fetchedResent));
+          console.log('resent Gelen Veri:', res.rows.length);
+          let fetchedResent = [];
+          for (let i = 0; i < res.rows.length; i++) {
+            fetchedResent.push(res.rows.item(i));
           }
-          dispatch(setPending(false));
-          // console.log('resents getirildi', res.rows);
+          dispatch(setResent(fetchedResent)); // Redux store güncelle
         },
-        error => console.log('Hata', error.message),
-        dispatch(setPending(false)),
+        error => console.log('Hata:', error.message),
       );
+      dispatch(setPending(false));
     });
   };
-  useEffect(() => {
-    return () => {
-      getResents(); // Aramaların getirilmesi için arka planda fonksiyon çağrıldı.
-      // Bu fonksiyonda veritabanından aramaların getirilmesi sağlanacak.
-    };
-  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(cleanDeletedCalls()); // Eski kayıtları temizle
+      getResents(); // Güncel verileri getir
+    }, []),
+  );
   return (
     <View style={defaultScreenStyle.container}>
-      <FlatList
-        data={resents}
-        renderItem={({item}) => <ResentItem item={item} />}
-      />
+      {pending ? (
+        <ActivityIndicator
+          color={colors.BLACK}
+          size={'large'}
+          style={{marginTop: height * 0.2}}
+        />
+      ) : (
+        <FlatList
+          data={resents}
+          renderItem={({item}) => <ResentItem item={item} />}
+        />
+      )}
     </View>
   );
 };

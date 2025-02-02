@@ -1,16 +1,21 @@
-import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import {Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
 import React, {useEffect} from 'react';
 import SQLite from 'react-native-sqlite-storage';
 import defaultScreenStyle from '../../styles/defaultScreenStyle';
 import Avatar from '../../components/contacts/Avatar';
 import {convertFullName} from '../../utils/functions';
-import {height, sizes, width} from '../../utils/constant';
+import {height, sizes} from '../../utils/constant';
 import {colors} from '../../theme/colors';
 import CircleIconButton from '../../components/ui/CircleIconButton';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import {CALLS} from '../../utils/routes';
-import {useDispatch} from 'react-redux';
-import {setContact, setPending} from '../../store/slice/contactSlice';
+import {useDispatch, useSelector} from 'react-redux';
+import {
+  addFavorite,
+  removeFavorite,
+  setContact,
+  setPending,
+} from '../../store/slice/contactSlice';
 
 // Uygulama içindeki kişi (contact) bilgilerini saklamak için
 // 'ContactsDatabase' adlı SQLite veritabanını açar veya yoksa oluşturur.
@@ -20,9 +25,12 @@ const db = SQLite.openDatabase({
 
 const ContactDetail = ({route, navigation}) => {
   const dispatch = useDispatch();
-  const {contact} = route.params;
-  // console.log('width:', width, 'height:', height);
 
+  // const {contact} = route.params;
+  const {contacts, favorites} = useSelector(state => state.contactStore);
+  const contact = contacts.find(c => c.id === route.params.contact.id);
+
+  const isFavorite = favorites.some(fav => fav.id === contact.id);
   // aramalarin veritabanına eklenmesi için bir fonksiyon
   const addNewCall = (date, resent_id, callType) => {
     db.transaction(txn => {
@@ -49,7 +57,7 @@ const ContactDetail = ({route, navigation}) => {
         'SELECT * FROM users',
         [],
         (sqlTxn, res) => {
-          console.log('Gelen Veri ', res.rows.length);
+          // console.log('Gelen Veri ', res.rows.length);
           if (res.rows.length > 0) {
             let fetchedUsers = [];
             for (let i = 0; i < res.rows.length; i++) {
@@ -74,6 +82,21 @@ const ContactDetail = ({route, navigation}) => {
   return (
     <View style={defaultScreenStyle.container}>
       <ScrollView>
+        <Pressable
+          onPress={() => {
+            if (isFavorite) {
+              dispatch(removeFavorite(contact.id));
+            } else {
+              dispatch(addFavorite(contact));
+            }
+          }}
+          style={{marginTop: 10}}>
+          <Ionicons
+            name={isFavorite ? 'star' : 'star-outline'}
+            size={30}
+            color={colors.GREEN}
+          />
+        </Pressable>
         <View style={styles.userContainer}>
           <Avatar
             name={contact?.name}
